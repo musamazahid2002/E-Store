@@ -1,0 +1,160 @@
+@@include('header.htm')
+@@include('blocks/navigation.htm')
+
+<section class="section">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-body">
+            <h2 class="card-title text-center mb-4">Login</h2>
+            <form id="loginForm">
+              <div class="mb-3">
+                <label for="loginEmail">Email address</label>
+                <input type="email" class="form-control" id="loginEmail" required>
+              </div>
+              <div class="mb-3">
+                <label for="loginPassword">Password</label>
+                <input type="password" class="form-control" id="loginPassword" required>
+              </div>
+              <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="rememberMe">
+                <label class="form-check-label" for="rememberMe">Remember me</label>
+              </div>
+              <button type="submit" class="btn btn-main btn-block">Login</button>
+              <div class="text-center mt-3">
+                <a href="#" id="forgotPasswordLink">Forgot password?</a>
+              </div>
+              <hr>
+              <div class="text-center">
+                <p>Don't have an account? <a href="register.html">Sign up</a></p>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Check if user is already logged in
+  if (localStorage.getItem('isLoggedIn') === 'true') {
+    window.location.href = 'index.html';
+  }
+
+  // Login form submission
+  document.getElementById('loginForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+    
+    // For demo purposes, accept any email/password
+    // In production, you would validate credentials with backend
+    
+    // Store login state
+    localStorage.setItem('isLoggedIn', 'true');
+    localStorage.setItem('userEmail', email);
+    
+    // Show success notification
+    showNotification('Login successful! Redirecting...', 'success');
+    
+    // Redirect after short delay
+    setTimeout(() => {
+      window.location.href = 'index.html';
+    }, 1500);
+  });
+
+  // Forgot password functionality
+  document.getElementById('forgotPasswordLink').addEventListener('click', function(e) {
+    e.preventDefault();
+    showForgotPasswordModal();
+  });
+
+  function showNotification(message, type) {
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type === 'success' ? 'success' : 'danger'} position-fixed`;
+    notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px; padding: 15px 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);';
+    notification.innerHTML = `<strong>${message}</strong>`;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      notification.style.transition = 'opacity 0.5s';
+      notification.style.opacity = '0';
+      setTimeout(() => notification.remove(), 500);
+    }, 2000);
+  }
+
+  function showForgotPasswordModal() {
+    const modalHTML = `
+      <div class="modal fade" id="forgotPasswordModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Reset Password</h5>
+              <button type="button" class="close" data-dismiss="modal">
+                <span>&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <form id="resetPasswordForm">
+                <div class="mb-3">
+                  <label for="resetEmail">Email address</label>
+                  <input type="email" class="form-control" id="resetEmail" required>
+                </div>
+                <div class="mb-3">
+                  <label for="newPassword">New Password</label>
+                  <input type="password" class="form-control" id="newPassword" required minlength="6">
+                </div>
+                <div class="mb-3">
+                  <label for="confirmPassword">Confirm New Password</label>
+                  <input type="password" class="form-control" id="confirmPassword" required minlength="6">
+                </div>
+                <button type="submit" class="btn btn-main btn-block">Reset Password</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    // Remove existing modal if any
+    const existingModal = document.getElementById('forgotPasswordModal');
+    if (existingModal) {
+      existingModal.remove();
+    }
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    $('#forgotPasswordModal').modal('show');
+    
+    document.getElementById('resetPasswordForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const newPassword = document.getElementById('newPassword').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+      
+      if (newPassword !== confirmPassword) {
+        showNotification('Passwords do not match!', 'danger');
+        return;
+      }
+      
+      if (newPassword.length < 6) {
+        showNotification('Password must be at least 6 characters!', 'danger');
+        return;
+      }
+      
+      // Store new password (in production, this would be sent to backend)
+      localStorage.setItem('userPassword', newPassword);
+      showNotification('Password reset successfully!', 'success');
+      $('#forgotPasswordModal').modal('hide');
+      setTimeout(() => {
+        $('#forgotPasswordModal').remove();
+      }, 500);
+    });
+  }
+});
+</script>
+
+@@include('footer.htm')
+@@include('blocks/footer.htm')
+

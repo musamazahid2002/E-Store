@@ -1,0 +1,276 @@
+@@include('header.htm')
+@@include('blocks/navigation.htm')
+
+<section class="section">
+  <div class="container">
+    <div class="row">
+      <div class="col-12">
+        <h1 class="mb-4">Checkout</h1>
+      </div>
+    </div>
+    
+    <div class="row">
+      <div class="col-lg-8">
+        <div class="card mb-4">
+          <div class="card-body">
+            <h5 class="card-title mb-4">Billing Information</h5>
+            <form id="checkoutForm">
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="firstName">First Name *</label>
+                  <input type="text" class="form-control" id="firstName" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label for="lastName">Last Name *</label>
+                  <input type="text" class="form-control" id="lastName" required>
+                </div>
+              </div>
+              <div class="mb-3">
+                <label for="email">Email *</label>
+                <input type="email" class="form-control" id="email" required>
+              </div>
+              <div class="mb-3">
+                <label for="phone">Phone *</label>
+                <input type="tel" class="form-control" id="phone" required>
+              </div>
+              <div class="mb-3">
+                <label for="address">Address *</label>
+                <input type="text" class="form-control" id="address" required>
+              </div>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="city">City *</label>
+                  <input type="text" class="form-control" id="city" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label for="zip">ZIP Code *</label>
+                  <input type="text" class="form-control" id="zip" required>
+                </div>
+              </div>
+              <div class="mb-3">
+                <label for="country">Country *</label>
+                <input type="text" class="form-control" id="country" required>
+              </div>
+            </form>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title mb-4">Payment Method</h5>
+            <div class="form-check mb-3">
+              <input class="form-check-input" type="radio" name="paymentMethod" id="stripePayment" value="stripe" checked>
+              <label class="form-check-label" for="stripePayment">
+                <strong>Credit/Debit Card (Stripe)</strong>
+              </label>
+            </div>
+            <div id="stripePaymentForm" class="mt-3">
+              <div class="mb-3">
+                <label for="cardNumber">Card Number *</label>
+                <input type="text" class="form-control" id="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19">
+              </div>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="expiryDate">Expiry Date *</label>
+                  <input type="text" class="form-control" id="expiryDate" placeholder="MM/YY" maxlength="5">
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label for="cvv">CVV *</label>
+                  <input type="text" class="form-control" id="cvv" placeholder="123" maxlength="4">
+                </div>
+              </div>
+              <div class="mb-3">
+                <label for="cardName">Name on Card *</label>
+                <input type="text" class="form-control" id="cardName">
+              </div>
+            </div>
+            
+            <div class="form-check mb-3">
+              <input class="form-check-input" type="radio" name="paymentMethod" id="codPayment" value="cod">
+              <label class="form-check-label" for="codPayment">
+                <strong>Cash on Delivery</strong>
+              </label>
+            </div>
+            <div id="codInfo" class="alert alert-info" style="display: none;">
+              You will pay cash when the order is delivered to your address.
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-lg-4">
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title mb-4">Order Summary</h5>
+            <div id="checkoutItems"></div>
+            <hr>
+            <div class="d-flex justify-content-between mb-2">
+              <span>Subtotal:</span>
+              <span id="checkoutSubtotal">PKR 0</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <span>Shipping:</span>
+              <span>PKR 1,400</span>
+            </div>
+            <hr>
+            <div class="d-flex justify-content-between mb-4">
+              <strong>Total:</strong>
+              <strong id="checkoutTotal">PKR 0</strong>
+            </div>
+            <button type="button" class="btn btn-main btn-block" id="placeOrderBtn">Place Order</button>
+            <a href="cart.html" class="btn btn-outline-secondary btn-block mt-2">Back to Cart</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script src="https://js.stripe.com/v3/"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const cart = new ShoppingCart();
+  const paymentMethodRadios = document.querySelectorAll('input[name="paymentMethod"]');
+  
+  renderCheckout();
+  
+  paymentMethodRadios.forEach(radio => {
+    radio.addEventListener('change', function() {
+      if (this.value === 'cod') {
+        document.getElementById('stripePaymentForm').style.display = 'none';
+        document.getElementById('codInfo').style.display = 'block';
+      } else {
+        document.getElementById('stripePaymentForm').style.display = 'block';
+        document.getElementById('codInfo').style.display = 'none';
+      }
+    });
+  });
+  
+  function renderCheckout() {
+    const cartItems = cart.cart;
+    const itemsContainer = document.getElementById('checkoutItems');
+    const subtotalEl = document.getElementById('checkoutSubtotal');
+    const totalEl = document.getElementById('checkoutTotal');
+    
+    if (cartItems.length === 0) {
+      itemsContainer.innerHTML = '<p class="text-muted">Your cart is empty.</p>';
+      document.getElementById('placeOrderBtn').disabled = true;
+      return;
+    }
+    
+    let html = '';
+    cartItems.forEach(item => {
+      html += `
+        <div class="d-flex justify-content-between mb-2">
+          <span>${item.name} x${item.quantity}</span>
+          <span>PKR ${(item.price * item.quantity).toLocaleString()}</span>
+        </div>
+      `;
+    });
+    itemsContainer.innerHTML = html;
+    
+    const subtotal = cart.getTotal();
+    const shipping = 1400;
+    const total = subtotal + shipping;
+    
+    subtotalEl.textContent = `PKR ${subtotal.toLocaleString()}`;
+    totalEl.textContent = `PKR ${total.toLocaleString()}`;
+  }
+  
+  document.getElementById('placeOrderBtn').addEventListener('click', function() {
+    const form = document.getElementById('checkoutForm');
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+    
+    const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
+    
+    if (paymentMethod === 'stripe') {
+      // For demo purposes, we'll simulate Stripe payment
+      // In production, you would integrate with Stripe API
+      processStripePayment();
+    } else {
+      processCODOrder();
+    }
+  });
+  
+  function processStripePayment() {
+    // Simulate Stripe payment processing
+    const billingData = {
+      firstName: document.getElementById('firstName').value,
+      lastName: document.getElementById('lastName').value,
+      email: document.getElementById('email').value,
+      phone: document.getElementById('phone').value,
+      address: document.getElementById('address').value,
+      city: document.getElementById('city').value,
+      zip: document.getElementById('zip').value,
+      country: document.getElementById('country').value,
+      paymentMethod: 'stripe',
+      items: cart.cart,
+      total: cart.getTotal() + 1400
+    };
+    
+    // Save order to localStorage
+    const orders = JSON.parse(localStorage.getItem('orders') || '[]');
+    orders.push({
+      ...billingData,
+      orderId: 'ORD-' + Date.now(),
+      date: new Date().toISOString(),
+      status: 'confirmed'
+    });
+    localStorage.setItem('orders', JSON.stringify(orders));
+    
+    cart.clearCart();
+    window.location.href = 'order-success.html';
+  }
+  
+  function processCODOrder() {
+    const billingData = {
+      firstName: document.getElementById('firstName').value,
+      lastName: document.getElementById('lastName').value,
+      email: document.getElementById('email').value,
+      phone: document.getElementById('phone').value,
+      address: document.getElementById('address').value,
+      city: document.getElementById('city').value,
+      zip: document.getElementById('zip').value,
+      country: document.getElementById('country').value,
+      paymentMethod: 'cash_on_delivery',
+      items: cart.cart,
+      total: cart.getTotal() + 1400
+    };
+    
+    const orders = JSON.parse(localStorage.getItem('orders') || '[]');
+    orders.push({
+      ...billingData,
+      orderId: 'ORD-' + Date.now(),
+      date: new Date().toISOString(),
+      status: 'pending'
+    });
+    localStorage.setItem('orders', JSON.stringify(orders));
+    
+    cart.clearCart();
+    window.location.href = 'order-success.html';
+  }
+  
+  // Format card number
+  document.getElementById('cardNumber').addEventListener('input', function(e) {
+    let value = e.target.value.replace(/\s/g, '');
+    let formattedValue = value.match(/.{1,4}/g)?.join(' ') || value;
+    e.target.value = formattedValue;
+  });
+  
+  // Format expiry date
+  document.getElementById('expiryDate').addEventListener('input', function(e) {
+    let value = e.target.value.replace(/\D/g, '');
+    if (value.length >= 2) {
+      value = value.substring(0, 2) + '/' + value.substring(2, 4);
+    }
+    e.target.value = value;
+  });
+});
+</script>
+
+@@include('footer.htm')
+@@include('blocks/footer.htm')
+
